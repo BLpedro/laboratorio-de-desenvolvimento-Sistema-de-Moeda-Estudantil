@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cadastro</title>
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --accent:#5561f2;
+      --muted:#7b8794;
+      --radius:12px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,var(--bg),#eef2ff);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:920px;
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:0 10px 30px rgba(36,59,85,0.08);
+      padding:28px;
+      display:grid;
+      grid-template-columns:1fr 420px;
+      gap:24px;
+    }
+
+    .hero{
+      padding:14px 10px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+    .hero h1{margin:0 0 8px 0;font-size:22px}
+    .hero p{margin:0;color:var(--muted)}
+
+    form{
+      padding:8px;
+    }
+
+    .grid{
+      display:grid;
+      gap:12px;
+      grid-template-columns:repeat(2,1fr);
+    }
+
+    label{
+      font-size:13px;
+      color:#243b55;
+      display:block;
+      margin-bottom:6px;
+    }
+
+    input,textarea,select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid #e6eef8;
+      background:#fbfdff;
+      font-size:14px;
+      outline:none;
+      transition:box-shadow .12s, border-color .12s;
+    }
+    input:focus,textarea:focus,select:focus{box-shadow:0 6px 18px rgba(85,97,242,0.12);border-color:var(--accent)}
+
+    textarea{min-height:92px;resize:vertical}
+
+    .full{grid-column:1 / -1}
+
+    .actions{display:flex;gap:12px;align-items:center;margin-top:8px}
+    button{
+      padding:11px 16px;border-radius:10px;border:0;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;
+      box-shadow:0 8px 20px rgba(85,97,242,0.12);
+    }
+    .btn-ghost{background:transparent;color:var(--accent);border:1px solid rgba(85,97,242,0.12)}
+
+    .note{font-size:12px;color:var(--muted)}
+
+    /* small screens */
+    @media (max-width:880px){
+      .wrap{grid-template-columns:1fr;padding:18px}
+      .grid{grid-template-columns:1fr}
+      .hero{order:2}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap" role="main">
+    <section class="hero" aria-hidden="false">
+      <h1>Cadastro de Usuário</h1>
+    </section>
+
+    <form id="cadastroForm" action="/register" method="post" novalidate>
+      <div class="grid">
+        <div>
+          <label for="login">Login *</label>
+          <input id="login" name="login" type="text" placeholder="usuarioteste" required maxlength="30" />
+        </div>
+
+        <div>
+          <label for="senha">Senha *</label>
+          <input id="senha" name="senha" type="password" placeholder="••••••••" required minlength="6" />
+        </div>
+
+        <div>
+          <label for="nome">Nome *</label>
+          <input id="nome" name="nome" type="text" placeholder="João da Silva" required />
+        </div>
+
+        <div>
+          <label for="email">Email *</label>
+          <input id="email" name="email" type="email" placeholder="seu@exemplo.com" required />
+        </div>
+
+        <div>
+          <label for="cpf">CPF *</label>
+          <input id="cpf" name="cpf" type="text" inputmode="numeric" placeholder="Digite apenas números" pattern="\d{11}" title="Digite 11 dígitos numéricos (apenas números)" required />
+        </div>
+
+        <div>
+          <label for="rg">RG</label>
+          <input id="rg" name="rg" type="text" inputmode="numeric" placeholder="Opcional" pattern="\d{5,12}" title="Apenas números" />
+        </div>
+
+        <div class="full">
+          <label for="curso">Curso</label>
+          <input id="curso" name="curso" type="text" placeholder="Nome do curso (ex.: Engenharia)" />
+        </div>
+
+        <div class="full">
+          <label for="endereco">Endereço</label>
+          <textarea id="endereco" name="endereco" placeholder="Rua, número, bairro, cidade - Estado"></textarea>
+        </div>
+
+        <div class="full">
+          <label for="saldo">Instituição</label>
+          <input id="saldo" name="saldo" type="number" step="0.01" min="0" placeholder="0.00" />
+        </div>>
+
+      
+
+      </div>
+
+      <div class="actions">
+        <button type="submit">Cadastrar</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
+
+
+<script>
+document.getElementById("cadastroForm").addEventListener("submit", async function(e) {
+  e.preventDefault(); // evita o recarregamento da página
+
+  const formData = new FormData(this);
+
+  const aluno = {
+    login: formData.get("login"),
+    senha: formData.get("senha"),
+    cpf: formData.get("cpf"),
+    nome: formData.get("nome"),
+    email: formData.get("email"),
+    rg: formData.get("rg"),
+    curso: formData.get("curso"),
+    endereco: formData.get("endereco"),
+    saldo: parseFloat(formData.get("saldo")) || 0
+  };
+
+  try {
+    const response = await fetch("http://localhost:8080/alunos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(aluno)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      alert("Aluno cadastrado com sucesso! 🎉");
+      console.log("Aluno criado:", data);
+      this.reset(); // limpa o formulário
+    } else {
+      const error = await response.text();
+      alert("Erro ao cadastrar aluno:\n" + error);
+    }
+
+  } catch (err) {
+    console.error("Erro de conexão:", err);
+    alert("Erro de conexão com o servidor. Verifique se o backend está rodando.");
+  }
+});
+</script>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cadastro de Alunos (CRUD)</title>
+  <style>
+    :root {
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --accent:#5561f2;
+      --muted:#7b8794;
+      --radius:12px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,var(--bg),#eef2ff);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      flex-direction:column;
+    }
+    .wrap{
+      width:100%;
+      max-width:960px;
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:0 10px 30px rgba(36,59,85,0.08);
+      padding:28px;
+      display:flex;
+      flex-direction:column;
+      gap:24px;
+    }
+    h1{text-align:center;margin:0 0 12px;font-size:24px;color:#243b55;}
+    form{padding:8px;}
+    .grid{
+      display:grid;
+      gap:12px;
+      grid-template-columns:repeat(2,1fr);
+    }
+    label{font-size:13px;color:#243b55;display:block;margin-bottom:6px;}
+    input,textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid #e6eef8;
+      background:#fbfdff;
+      font-size:14px;
+      outline:none;
+      transition:box-shadow .12s,border-color .12s;
+    }
+    input:focus,textarea:focus{box-shadow:0 6px 18px rgba(85,97,242,0.12);border-color:var(--accent);}
+    textarea{min-height:60px;resize:vertical;}
+    .full{grid-column:1 / -1;}
+    .actions{display:flex;gap:12px;align-items:center;margin-top:8px;justify-content:center;}
+    button{
+      padding:11px 16px;border-radius:10px;border:0;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;
+      box-shadow:0 8px 20px rgba(85,97,242,0.12);
+    }
+    .btn-ghost{background:transparent;color:var(--accent);border:1px solid rgba(85,97,242,0.3)}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+    }
+    th,td{
+      padding:10px;
+      border-bottom:1px solid #e6eef8;
+      text-align:left;
+    }
+    th{background:#f8f9ff;color:#243b55;}
+    tr:hover{background:#f9faff;}
+    .btn-sm{
+      padding:6px 10px;
+      font-size:13px;
+      border-radius:8px;
+    }
+    .btn-edit{background:#4caf50;}
+    .btn-delete{background:#e74c3c;}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Gerenciamento de Alunos</h1>
+
+    <!-- Formulário -->
+    <form id="cadastroForm" novalidate>
+      <input type="hidden" id="id" name="id" />
+      <div class="grid">
+        <div><label>Login *</label><input id="login" name="login" required /></div>
+        <div><label>Senha *</label><input id="senha" name="senha" type="password" required /></div>
+        <div><label>Nome *</label><input id="nome" name="nome" required /></div>
+        <div><label>Email *</label><input id="email" name="email" type="email" required /></div>
+        <div><label>CPF *</label><input id="cpf" name="cpf" required pattern="\d{11}" /></div>
+        <div><label>RG</label><input id="rg" name="rg" /></div>
+        <div class="full"><label>Curso</label><input id="curso" name="curso" /></div>
+        <div class="full"><label>Endereço</label><textarea id="endereco" name="endereco"></textarea></div>
+      </div>
+      <div class="actions">
+        <button type="submit" id="btnSalvar">Cadastrar</button>
+        <button type="button" class="btn-ghost" id="btnCancelar" style="display:none;">Cancelar edição</button>
+      </div>
+    </form>
+
+    <!-- Listagem -->
+    <section>
+      <h2 style="font-size:18px;margin-bottom:10px;">Lista de Alunos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Nome</th><th>Email</th><th>CPF</th><th>Curso</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="alunoList"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = "http://localhost:8080/alunos";
+    const form = document.getElementById("cadastroForm");
+    const list = document.getElementById("alunoList");
+    const btnSalvar = document.getElementById("btnSalvar");
+    const btnCancelar = document.getElementById("btnCancelar");
+
+    async function carregarAlunos() {
+      try {
+        const res = await fetch(API_URL);
+        const alunos = await res.json();
+        list.innerHTML = alunos.map(a => `
+          <tr>
+            <td>${a.id}</td>
+            <td>${a.nome}</td>
+            <td>${a.email}</td>
+            <td>${a.cpf}</td>
+            <td>${a.curso || "-"}</td>
+            <td>
+              <button class="btn-sm btn-edit" onclick="editarAluno(${a.id})">Editar</button>
+              <button class="btn-sm btn-delete" onclick="excluirAluno(${a.id})">Excluir</button>
+            </td>
+          </tr>`).join("");
+      } catch (err) {
+        console.error("Erro ao carregar alunos:", err);
+      }
+    }
+
+    async function salvarAluno(e) {
+      e.preventDefault();
+      const aluno = {
+        login: form.login.value,
+        senha: form.senha.value,
+        nome: form.nome.value,
+        email: form.email.value,
+        cpf: form.cpf.value,
+        rg: form.rg.value,
+        curso: form.curso.value,
+        endereco: form.endereco.value
+      };
+
+      const id = form.id.value;
+      const method = id ? "PUT" : "POST";
+      const url = id ? `${API_URL}/${id}` : API_URL;
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(aluno)
+        });
+
+        if (res.ok) {
+          alert(id ? "Aluno atualizado!" : "Aluno cadastrado!");
+          form.reset();
+          form.id.value = "";
+          btnSalvar.textContent = "Cadastrar";
+          btnCancelar.style.display = "none";
+          carregarAlunos();
+        } else {
+          const msg = await res.text();
+          alert("Erro: " + msg);
+        }
+      } catch (err) {
+        alert("Erro de conexão com o servidor.");
+      }
+    }
+
+    async function editarAluno(id) {
+      try {
+        const res = await fetch(`${API_URL}/${id}`);
+        if (!res.ok) throw new Error("Aluno não encontrado");
+        const a = await res.json();
+        form.id.value = a.id;
+        form.login.value = a.login;
+        form.senha.value = a.senha || "";
+        form.nome.value = a.nome;
+        form.email.value = a.email;
+        form.cpf.value = a.cpf;
+        form.rg.value = a.rg || "";
+        form.curso.value = a.curso || "";
+        form.endereco.value = a.endereco || "";
+        btnSalvar.textContent = "Atualizar";
+        btnCancelar.style.display = "inline-block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (err) {
+        alert("Erro ao carregar aluno para edição.");
+      }
+    }
+
+    async function excluirAluno(id) {
+      if (!confirm("Deseja realmente excluir este aluno?")) return;
+      try {
+        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          alert("Aluno excluído com sucesso!");
+          carregarAlunos();
+        } else {
+          alert("Erro ao excluir aluno.");
+        }
+      } catch (err) {
+        alert("Erro de conexão com o servidor.");
+      }
+    }
+
+    btnCancelar.addEventListener("click", () => {
+      form.reset();
+      form.id.value = "";
+      btnSalvar.textContent = "Cadastrar";
+      btnCancelar.style.display = "none";
+    });
+
+    form.addEventListener("submit", salvarAluno);
+
+    window.editarAluno = editarAluno;
+    window.excluirAluno = excluirAluno;
+
+    carregarAlunos();
+  </script>
+</body>
+</html>
