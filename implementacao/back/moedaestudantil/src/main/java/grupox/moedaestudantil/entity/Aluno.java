@@ -1,8 +1,6 @@
 package grupox.moedaestudantil.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 
 
 @Entity
@@ -14,13 +12,15 @@ public class Aluno extends Usuario {
     private String curso;
     private String endereco;
     private double saldo;
-
-
-    @ManyToOne
-    @JoinColumn(name = "instituicao_id", referencedColumnName = "id")
-    private Instituicao instituicao;
+    private String instituicaoId;
 
     
+    public String getInstituicaoId() {
+        return instituicaoId;
+    }
+    public void setInstituicaoId(String instituicaoId) {
+        this.instituicaoId = instituicaoId;
+    }
     public String getCpf() {
         return cpf;
     }
@@ -63,10 +63,5 @@ public class Aluno extends Usuario {
     public void setSaldo(double saldo) {
         this.saldo = saldo;
     }
-    public Instituicao  getInstituicao() {
-        return instituicao;
-    }
-    public void setInstituicao(Instituicao  instituicao) {
-        this.instituicao = instituicao;
-    }
+
 }

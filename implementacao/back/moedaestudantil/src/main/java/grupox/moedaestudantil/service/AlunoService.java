@@ -4,7 +4,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-
 import grupox.moedaestudantil.entity.Aluno;
 import grupox.moedaestudantil.repository.AlunoRepository;
 
@@ -26,7 +25,7 @@ public class AlunoService {
             aluno.setEmail(updateAluno.getEmail());
             aluno.setRg(updateAluno.getRg());
             aluno.setCurso(updateAluno.getCurso());
-            aluno.setInstituicao(updateAluno.getInstituicao());
+            aluno.setInstituicaoId(updateAluno.getInstituicaoId());
             aluno.setSaldo(updateAluno.getSaldo());
             aluno.setEndereco(updateAluno.getEndereco());
             return alunoRepository.save(aluno);

@@ -14,13 +14,18 @@ public class Instituicao {
     private String nome;
 
 
-     @OneToMany(mappedBy = "instituicao")
-    private List<Aluno> alunos;
-
      public String getCnpj() { return cnpj; }
     public void setCnpj(String cnpj) { this.cnpj = cnpj; }
 
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
+
+
+      public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
 }

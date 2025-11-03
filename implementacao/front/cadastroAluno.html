@@ -46,9 +46,7 @@
     .hero h1{margin:0 0 8px 0;font-size:22px}
     .hero p{margin:0;color:var(--muted)}
 
-    form{
-      padding:8px;
-    }
+    form{padding:8px;}
 
     .grid{
       display:grid;
@@ -88,7 +86,6 @@
 
     .note{font-size:12px;color:var(--muted)}
 
-    /* small screens */
     @media (max-width:880px){
       .wrap{grid-template-columns:1fr;padding:18px}
       .grid{grid-template-columns:1fr}
@@ -145,11 +142,11 @@
         </div>
 
         <div class="full">
-          <label for="saldo">Instituição</label>
-          <input id="saldo" name="saldo" type="number" step="0.01" min="0" placeholder="0.00" />
-        </div>>
-
-      
+          <label for="instituicao">Instituição</label>
+          <select id="instituicao" name="instituicao">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
 
       </div>
 
@@ -158,11 +155,38 @@
       </div>
     </form>
   </main>
-</body>
-</html>
-
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('cadastroForm');
+  const instituicaoSelect = document.getElementById('instituicao');
+
+  // Função para carregar instituições
+  async function carregarInstituicoes() {
+    try {
+      const res = await fetch('http://localhost:8080/instituicoes');
+      if (!res.ok) throw new Error('Erro ao carregar instituições');
+      const instituicoes = await res.json();
+
+      // Limpa opções existentes
+      instituicaoSelect.innerHTML = '<option value="">Selecione uma instituição</option>';
+
+      // Adiciona cada instituição no select
+      instituicoes.forEach(inst => {
+        const option = document.createElement('option');
+        option.value = inst.id; // Assumindo que cada instituição tem um ID
+        option.textContent = inst.nome; // Assumindo que cada instituição tem um nome
+        instituicaoSelect.appendChild(option);
+      });
+    } catch (err) {
+      console.error(err);
+      instituicaoSelect.innerHTML = '<option value="">Erro ao carregar instituições</option>';
+    }
+  }
+
+  carregarInstituicoes();
+});
+
 document.getElementById("cadastroForm").addEventListener("submit", async function(e) {
   e.preventDefault(); // evita o recarregamento da página
 
@@ -177,7 +201,8 @@ document.getElementById("cadastroForm").addEventListener("submit", async functio
     rg: formData.get("rg"),
     curso: formData.get("curso"),
     endereco: formData.get("endereco"),
-    saldo: parseFloat(formData.get("saldo")) || 0
+    saldo: parseFloat(formData.get("saldo")) || 0,
+    instituicaoId: (formData.get("instituicao"))
   };
 
   try {
@@ -204,4 +229,7 @@ document.getElementById("cadastroForm").addEventListener("submit", async functio
     alert("Erro de conexão com o servidor. Verifique se o backend está rodando.");
   }
 });
+
 </script>
+</body>
+</html>
