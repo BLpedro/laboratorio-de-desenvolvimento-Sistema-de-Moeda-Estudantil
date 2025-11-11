@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar ID</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      color: #333;
+      text-align: center;
+      padding: 0;
+      margin: 0;
+    }
+
+    header {
+      background-color: #2563eb;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    header h1 {
+      font-size: 1.5em;
+      margin: 0;
+    }
+
+    nav {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+
+    nav a:hover {
+      background-color: #1d4ed8;
+    }
+
+    /* Botão Sair */
+  
+
+    main {
+      padding: 50px;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      display: inline-block;
+      font-size: 1.2em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .ok { background-color: #d1fae5; color: #065f46; }
+    .warn { background-color: #fef3c7; color: #92400e; }
+    .error { background-color: #fee2e2; color: #991b1b; }
+
+    button {
+      margin-top: 25px;
+      padding: 12px 24px;
+      font-size: 1em;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sistema de Vantagens</h1>
+    <nav id="menu">
+      <button id="btnSair" onclick="sair()">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+    <div id="resultado" class="status"></div>
+    <div id="acoes"></div>
+  </main>
+
+  <script>
+    function sair() {
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
+
+    async function verificarID() {
+      const resultado = document.getElementById('resultado');
+      const acoes = document.getElementById('acoes');
+      const menu = document.getElementById('menu');
+      const id = localStorage.getItem('id');
+
+      if (!id) {
+        resultado.textContent = 'ID não encontrado no localStorage.';
+        resultado.className = 'status error';
+        return;
+      }
+
+      const base = 'http://localhost:8080';
+      try {
+        const [resEmp, resAlu] = await Promise.all([
+          fetch(`${base}/empresas?id=${encodeURIComponent(id)}`),
+          fetch(`${base}/alunos?id=${encodeURIComponent(id)}`)
+        ]);
+
+        const empresas = await resEmp.json();
+        const alunos = await resAlu.json();
+
+        const achouEmpresa = Array.isArray(empresas)
+          ? empresas.some(e => e.id == id)
+          : empresas?.id == id;
+        const achouAluno = Array.isArray(alunos)
+          ? alunos.some(a => a.id == id)
+          : alunos?.id == id;
+
+        // limpa o menu e reinsere o botão Sair
+        menu.innerHTML = '';
+
+        if (achouEmpresa && achouAluno) {
+          resultado.textContent = `O ID ${id} está em ALUNOS e EMPRESAS.`;
+          resultado.className = 'status warn';
+        } else if (achouEmpresa) {
+          resultado.textContent = `O ID ${id} pertence a uma EMPRESA.`;
+          resultado.className = 'status ok';
+          menu.innerHTML = `
+            <a href="cadastrarVantagem.html">Cadastrar Vantagem</a>
+            <a href="vantagensCadastradas.html">Vantagens Cadastradas</a>
+            <a href="empresa.html">Perfil</a>
+            <button id="btnSair" onclick="sair()">Sair</button>
+          `;
+        } else if (achouAluno) {
+          resultado.textContent = `O ID ${id} pertence a um ALUNO.`;
+          resultado.className = 'status ok';
+          menu.innerHTML = `
+            <a href="vantagensCadastradas.html">Vantagens</a>
+            <a href="aluno.html">Perfil</a>
+            <button id="btnSair" onclick="sair()">Sair</button>
+          `;
+        } else {
+          resultado.textContent = `O ID ${id} não foi encontrado em ALUNOS nem em EMPRESAS.`;
+          resultado.className = 'status error';
+          acoes.innerHTML = '';
+        }
+      } catch (err) {
+        resultado.textContent = 'Erro ao fazer as requisições.';
+        resultado.className = 'status error';
+        console.error(err);
+      }
+    }
+
+    verificarID();
+  </script>
+</body>
+</html>

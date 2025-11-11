@@ -85,7 +85,7 @@
 </head>
 <body>
   <main class="wrap">
-    <h1>Gerenciamento de Alunos</h1>
+    <h1>Gerenciamento de Aluno</h1>
 
     <!-- Formulário -->
     <form id="cadastroForm" novalidate>
@@ -101,14 +101,13 @@
         <div class="full"><label>Endereço</label><textarea id="endereco" name="endereco"></textarea></div>
       </div>
       <div class="actions">
-        <button type="submit" id="btnSalvar">Cadastrar</button>
-        <button type="button" class="btn-ghost" id="btnCancelar" style="display:none;">Cancelar edição</button>
+        <button type="submit" id="btnSalvar">Atualizar</button>
       </div>
     </form>
 
     <!-- Listagem -->
     <section>
-      <h2 style="font-size:18px;margin-bottom:10px;">Lista de Alunos</h2>
+      <h2 style="font-size:18px;margin-bottom:10px;">Seus Dados</h2>
       <table>
         <thead>
           <tr>
@@ -124,14 +123,21 @@
     const API_URL = "http://localhost:8080/alunos";
     const form = document.getElementById("cadastroForm");
     const list = document.getElementById("alunoList");
-    const btnSalvar = document.getElementById("btnSalvar");
-    const btnCancelar = document.getElementById("btnCancelar");
+    const alunoId = localStorage.getItem("id");
 
-    async function carregarAlunos() {
+    async function carregarAluno() {
+      if (!alunoId) {
+        alert("Nenhum aluno logado. Faça login novamente.");
+        window.location.href = "index.html";
+        return;
+      }
+
       try {
-        const res = await fetch(API_URL);
-        const alunos = await res.json();
-        list.innerHTML = alunos.map(a => `
+        const res = await fetch(`${API_URL}/${alunoId}`);
+        if (!res.ok) throw new Error("Aluno não encontrado");
+        const a = await res.json();
+
+        list.innerHTML = `
           <tr>
             <td>${a.id}</td>
             <td>${a.nome}</td>
@@ -142,14 +148,30 @@
               <button class="btn-sm btn-edit" onclick="editarAluno(${a.id})">Editar</button>
               <button class="btn-sm btn-delete" onclick="excluirAluno(${a.id})">Excluir</button>
             </td>
-          </tr>`).join("");
+          </tr>`;
+
+        // Preenche o formulário
+        form.id.value = a.id;
+        form.login.value = a.login;
+        form.senha.value = a.senha || "";
+        form.nome.value = a.nome;
+        form.email.value = a.email;
+        form.cpf.value = a.cpf;
+        form.rg.value = a.rg || "";
+        form.curso.value = a.curso || "";
+        form.endereco.value = a.endereco || "";
+
       } catch (err) {
-        console.error("Erro ao carregar alunos:", err);
+        console.error("Erro ao carregar aluno:", err);
+        alert("Erro ao carregar seus dados.");
       }
     }
 
     async function salvarAluno(e) {
       e.preventDefault();
+      const id = form.id.value;
+      if (!id) return;
+
       const aluno = {
         login: form.login.value,
         senha: form.senha.value,
@@ -161,27 +183,18 @@
         endereco: form.endereco.value
       };
 
-      const id = form.id.value;
-      const method = id ? "PUT" : "POST";
-      const url = id ? `${API_URL}/${id}` : API_URL;
-
       try {
-        const res = await fetch(url, {
-          method,
+        const res = await fetch(`${API_URL}/${id}`, {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(aluno)
         });
 
         if (res.ok) {
-          alert(id ? "Aluno atualizado!" : "Aluno cadastrado!");
-          form.reset();
-          form.id.value = "";
-          btnSalvar.textContent = "Cadastrar";
-          btnCancelar.style.display = "none";
-          carregarAlunos();
+          alert("Dados atualizados com sucesso!");
+          carregarAluno();
         } else {
-          const msg = await res.text();
-          alert("Erro: " + msg);
+          alert("Erro ao atualizar dados.");
         }
       } catch (err) {
         alert("Erro de conexão com o servidor.");
@@ -189,55 +202,32 @@
     }
 
     async function editarAluno(id) {
-      try {
-        const res = await fetch(`${API_URL}/${id}`);
-        if (!res.ok) throw new Error("Aluno não encontrado");
-        const a = await res.json();
-        form.id.value = a.id;
-        form.login.value = a.login;
-        form.senha.value = a.senha || "";
-        form.nome.value = a.nome;
-        form.email.value = a.email;
-        form.cpf.value = a.cpf;
-        form.rg.value = a.rg || "";
-        form.curso.value = a.curso || "";
-        form.endereco.value = a.endereco || "";
-        btnSalvar.textContent = "Atualizar";
-        btnCancelar.style.display = "inline-block";
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } catch (err) {
-        alert("Erro ao carregar aluno para edição.");
-      }
+      // Já está preenchido — rola até o topo
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     async function excluirAluno(id) {
-      if (!confirm("Deseja realmente excluir este aluno?")) return;
+      if (!confirm("Deseja realmente excluir sua conta?")) return;
       try {
         const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
         if (res.ok) {
-          alert("Aluno excluído com sucesso!");
-          carregarAlunos();
+          alert("Conta excluída com sucesso!");
+          localStorage.clear();
+          window.location.href = "index.html";
         } else {
-          alert("Erro ao excluir aluno.");
+          alert("Erro ao excluir conta.");
         }
       } catch (err) {
         alert("Erro de conexão com o servidor.");
       }
     }
 
-    btnCancelar.addEventListener("click", () => {
-      form.reset();
-      form.id.value = "";
-      btnSalvar.textContent = "Cadastrar";
-      btnCancelar.style.display = "none";
-    });
-
     form.addEventListener("submit", salvarAluno);
 
     window.editarAluno = editarAluno;
     window.excluirAluno = excluirAluno;
 
-    carregarAlunos();
+    carregarAluno();
   </script>
 </body>
 </html>

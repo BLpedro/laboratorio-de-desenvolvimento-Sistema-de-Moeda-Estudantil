@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CRUD de Empresas Parceiras</title>
+<title>Perfil da Empresa Parceira</title>
 <style>
 :root{
   --bg:#f4f7fb;
@@ -56,7 +56,7 @@ tr:hover{background:#f9faff;}
 </head>
 <body>
 <main class="wrap">
-  <h1>Gerenciamento de Empresas Parceiras</h1>
+  <h1>Perfil da Empresa Parceira</h1>
 
   <!-- Formulário -->
   <form id="cadastroForm" novalidate>
@@ -68,14 +68,13 @@ tr:hover{background:#f9faff;}
       <div><label>CNPJ</label><input id="cnpj" name="cnpj" pattern="\d{14}" /></div>
     </div>
     <div class="actions">
-      <button type="submit" id="btnSalvar">Cadastrar</button>
-      <button type="button" class="btn-ghost" id="btnCancelar" style="display:none;">Cancelar</button>
+      <button type="submit" id="btnSalvar">Atualizar</button>
     </div>
   </form>
 
-  <!-- Lista de empresas -->
+  <!-- Exibição da empresa -->
   <section>
-    <h2 style="font-size:18px;margin-bottom:10px;">Lista de Empresas</h2>
+    <h2 style="font-size:18px;margin-bottom:10px;">Seus Dados</h2>
     <table>
       <thead>
         <tr><th>ID</th><th>Nome</th><th>Login</th><th>CNPJ</th><th>Ações</th></tr>
@@ -89,15 +88,23 @@ tr:hover{background:#f9faff;}
 const API_EMPRESAS = "http://localhost:8080/empresas";
 const form = document.getElementById("cadastroForm");
 const list = document.getElementById("empresaList");
-const btnSalvar = document.getElementById("btnSalvar");
-const btnCancelar = document.getElementById("btnCancelar");
+const empresaId = localStorage.getItem("id");
 
-// ---- Carregar empresas ----
-async function carregarEmpresas(){
+// ---- Carregar empresa logada ----
+async function carregarEmpresa(){
+  if(!empresaId){
+    alert("Nenhuma empresa logada. Faça login novamente.");
+    window.location.href = "index.html";
+    return;
+  }
+
   try{
-    const res = await fetch(API_EMPRESAS);
-    const empresas = await res.json();
-    list.innerHTML = empresas.map(e=>`
+    const res = await fetch(`${API_EMPRESAS}/${empresaId}`);
+    if(!res.ok) throw new Error("Empresa não encontrada");
+    const e = await res.json();
+
+    // Exibe a empresa na tabela
+    list.innerHTML = `
       <tr>
         <td>${e.id}</td>
         <td>${e.nome}</td>
@@ -108,91 +115,79 @@ async function carregarEmpresas(){
           <button class="btn-sm btn-delete" onclick="excluirEmpresa(${e.id})">Excluir</button>
         </td>
       </tr>
-    `).join("");
+    `;
+
+    // Preenche o formulário
+    form.id.value = e.id;
+    form.login.value = e.login;
+    form.senha.value = "";
+    form.nome.value = e.nome;
+    form.cnpj.value = e.cnpj || "";
+
   }catch(err){
-    console.error("Erro ao carregar empresas:",err);
+    console.error("Erro ao carregar empresa:",err);
+    alert("Erro ao carregar dados da empresa.");
   }
 }
 
-// ---- Salvar / Atualizar ----
+// ---- Atualizar empresa ----
 async function salvarEmpresa(e){
   e.preventDefault();
+  const id = form.id.value;
+  if(!id) return;
+
   const empresa = {
     login: form.login.value,
     senha: form.senha.value,
     nome: form.nome.value,
     cnpj: form.cnpj.value
   };
-  const id = form.id.value;
-  const method = id ? "PUT" : "POST";
-  const url = id ? `${API_EMPRESAS}/${id}` : API_EMPRESAS;
+
   try{
-    const res = await fetch(url,{
-      method,
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(empresa)
+    const res = await fetch(`${API_EMPRESAS}/${id}`,{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(empresa)
     });
     if(res.ok){
-      alert(id ? "Empresa atualizada!" : "Empresa cadastrada!");
-      form.reset();
-      form.id.value="";
-      btnSalvar.textContent="Cadastrar";
-      btnCancelar.style.display="none";
-      carregarEmpresas();
+      alert("Dados atualizados com sucesso!");
+      carregarEmpresa();
     }else{
-      const msg = await res.text();
-      alert("Erro: "+msg);
+      alert("Erro ao atualizar dados.");
     }
-  }catch{
+  }catch(err){
     alert("Erro de conexão com o servidor.");
   }
 }
 
-// ---- Editar ----
-async function editarEmpresa(id){
-  try{
-    const res = await fetch(`${API_EMPRESAS}/${id}`);
-    const e = await res.json();
-    form.id.value = e.id;
-    form.login.value = e.login;
-    form.senha.value = "";
-    form.nome.value = e.nome;
-    form.cnpj.value = e.cnpj || "";
-    btnSalvar.textContent="Atualizar";
-    btnCancelar.style.display="inline-block";
-    window.scrollTo({top:0,behavior:"smooth"});
-  }catch{
-    alert("Erro ao carregar empresa.");
-  }
+// ---- Editar (já preenche) ----
+function editarEmpresa(id){
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
-// ---- Excluir ----
+// ---- Excluir empresa ----
 async function excluirEmpresa(id){
-  if(!confirm("Deseja realmente excluir esta empresa?")) return;
+  if(!confirm("Deseja realmente excluir sua conta de empresa?")) return;
   try{
     const res = await fetch(`${API_EMPRESAS}/${id}`,{method:"DELETE"});
     if(res.ok){
-      alert("Empresa excluída!");
-      carregarEmpresas();
-    }else alert("Erro ao excluir empresa.");
-  }catch{
+      alert("Conta excluída com sucesso!");
+      localStorage.clear();
+      window.location.href = "index.html";
+    }else{
+      alert("Erro ao excluir conta.");
+    }
+  }catch(err){
     alert("Erro de conexão com o servidor.");
   }
 }
-
-// ---- Cancelar edição ----
-btnCancelar.addEventListener("click",()=>{
-  form.reset();
-  form.id.value="";
-  btnSalvar.textContent="Cadastrar";
-  btnCancelar.style.display="none";
-});
 
 form.addEventListener("submit", salvarEmpresa);
 window.editarEmpresa = editarEmpresa;
 window.excluirEmpresa = excluirEmpresa;
 
-carregarEmpresas();
+carregarEmpresa();
 </script>
 </body>
 </html>
+  

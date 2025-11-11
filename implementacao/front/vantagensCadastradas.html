@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vantagens Cadastradas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      color: #333;
+      margin: 0;
+    }
+
+    header {
+      background-color: #2563eb;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    header h1 {
+      font-size: 1.5em;
+      margin: 0;
+    }
+
+    nav {
+      display: flex;
+      gap: 15px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+
+    nav a:hover {
+      background-color: #1d4ed8;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 50px auto;
+      padding: 0 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2563eb;
+      margin-bottom: 30px;
+    }
+
+    .vantagens-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .vantagem-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .vantagem-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .vantagem-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .vantagem-info {
+      padding: 15px;
+      text-align: left;
+    }
+
+    .vantagem-info h3 {
+      margin: 0;
+      color: #111;
+      font-size: 1.2em;
+    }
+
+    .vantagem-info p {
+      margin: 8px 0;
+      color: #555;
+    }
+
+    .valor {
+      font-weight: bold;
+      color: #2563eb;
+    }
+
+    .acoes {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0 15px;
+    }
+
+    .acoes button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: background-color 0.2s;
+    }
+
+    .acoes button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .excluir {
+      background-color: #dc2626;
+    }
+
+    .excluir:hover {
+      background-color: #b91c1c;
+    }
+
+    .resgatar {
+      background-color: #10b981;
+    }
+
+    .resgatar:hover {
+      background-color: #059669;
+    }
+
+    .erro {
+      background-color: #fee2e2;
+      color: #991b1b;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      margin-top: 30px;
+      font-size: 1.1em;
+    }
+
+    /* ======== MODAL ======== */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+      text-align: center;
+      color: #2563eb;
+    }
+
+    .modal-content label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .modal-content input, 
+    .modal-content textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .modal-content button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .salvar {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .cancelar {
+      background-color: #9ca3af;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sistema de Vantagens</h1>
+    <nav id="menu"></nav>
+  </header>
+
+  <main>
+    <h2>Vantagens Cadastradas</h2>
+    <div id="vantagens" class="vantagens-container"></div>
+    <div id="mensagem" class="loading">Carregando vantagens...</div>
+  </main>
+
+  <!-- MODAL DE EDIÇÃO -->
+  <div id="modalEditar" class="modal">
+    <div class="modal-content">
+      <h3>Editar Vantagem</h3>
+      <label>Foto (URL):</label>
+      <input type="text" id="editFoto">
+
+      <label>Valor:</label>
+      <input type="number" id="editValor">
+
+      <label>Descrição:</label>
+      <textarea id="editDescricao"></textarea>
+
+      <button class="salvar" id="btnSalvar">Salvar Alterações</button>
+      <button class="cancelar" id="btnCancelar">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    let vantagemAtual = null;
+
+    async function carregarMenu() {
+      const menu = document.getElementById('menu');
+      const id = localStorage.getItem('id');
+      if (!id) {
+        menu.innerHTML = `<a href="index.html">Voltar</a>`;
+        return { tipo: 'desconhecido' };
+      }
+
+      const base = 'http://localhost:8080';
+      try {
+        const [resEmp, resAlu] = await Promise.all([
+          fetch(`${base}/empresas?id=${encodeURIComponent(id)}`),
+          fetch(`${base}/alunos?id=${encodeURIComponent(id)}`)
+        ]);
+
+        const empresas = await resEmp.json();
+        const alunos = await resAlu.json();
+
+        const achouEmpresa = Array.isArray(empresas)
+          ? empresas.some(e => e.id == id)
+          : empresas?.id == id;
+        const achouAluno = Array.isArray(alunos)
+          ? alunos.some(a => a.id == id)
+          : alunos?.id == id;
+
+        if (achouEmpresa) {
+          menu.innerHTML = `
+            <a href="cadastrarVantagem.html">Cadastrar Vantagem</a>
+            <a href="vantagensCadastradas.html">Vantagens Cadastradas</a>
+            <a href="empresa.html">Perfil</a>
+          `;
+          return { tipo: 'empresa', id };
+        } else if (achouAluno) {
+          menu.innerHTML = `
+            <a href="vantagensCadastradas.html">Vantagens</a>
+            <a href="aluno.html">Perfil</a>
+          `;
+          return { tipo: 'aluno', id };
+        } else {
+          menu.innerHTML = `<a href="index.html">Início</a>`;
+          return { tipo: 'desconhecido' };
+        }
+      } catch (e) {
+        console.error(e);
+        menu.innerHTML = `<a href="index.html">Início</a>`;
+        return { tipo: 'erro' };
+      }
+    }
+
+    async function carregarVantagens() {
+      const container = document.getElementById('vantagens');
+      const msg = document.getElementById('mensagem');
+      const user = await carregarMenu();
+
+      try {
+        const base = 'http://localhost:8080';
+        const urlVantagens = user.tipo === 'empresa'
+          ? `${base}/vantagens?empresaId=${encodeURIComponent(user.id)}`
+          : `${base}/vantagens`;
+
+        const [resVantagens, resEmpresas] = await Promise.all([
+          fetch(urlVantagens),
+          fetch(`${base}/empresas`)
+        ]);
+
+        let vantagens = await resVantagens.json();
+        let empresas = await resEmpresas.json();
+        if (vantagens.content) vantagens = vantagens.content;
+        if (empresas.content) empresas = empresas.content;
+
+        if (!Array.isArray(vantagens) || vantagens.length === 0) {
+          msg.textContent = 'Nenhuma vantagem cadastrada.';
+          return;
+        }
+
+        msg.style.display = 'none';
+        const mapaEmpresas = new Map();
+        empresas.forEach(e => mapaEmpresas.set(String(e.id), e.nome || 'Empresa sem nome'));
+
+        vantagens.forEach(v => {
+          const nomeEmpresa = mapaEmpresas.get(String(v.empresaId)) || 'Empresa desconhecida';
+
+          const card = document.createElement('div');
+          card.className = 'vantagem-card';
+          card.innerHTML = `
+            <img src="${v.foto || 'https://via.placeholder.com/300x180?text=Sem+Imagem'}" alt="Imagem da vantagem">
+            <div class="vantagem-info">
+              <h3>${v.descricao || 'Sem descrição'}</h3>
+              <p class="valor">Valor: ${v.valor || 0} pontos</p>
+              <p><strong>Empresa:</strong> ${nomeEmpresa}</p>
+            </div>
+          `;
+
+          const botoes = document.createElement('div');
+          botoes.className = 'acoes';
+
+          if (user.tipo === 'empresa') {
+            const editar = document.createElement('button');
+            editar.textContent = 'Editar';
+            editar.onclick = () => abrirModal(v);
+
+            const excluir = document.createElement('button');
+            excluir.textContent = 'Excluir';
+            excluir.classList.add('excluir');
+            excluir.onclick = async () => {
+              if (confirm('Deseja realmente excluir esta vantagem?')) {
+                await fetch(`${base}/vantagens/${v.id}`, { method: 'DELETE' });
+                alert('Vantagem excluída com sucesso!');
+                window.location.reload();
+              }
+            };
+            botoes.append(editar, excluir);
+          } else if (user.tipo === 'aluno') {
+            const resgatar = document.createElement('button');
+            resgatar.textContent = 'Resgatar Vantagem';
+            resgatar.classList.add('resgatar');
+            resgatar.onclick = async () => {
+              try {
+                // Busca dados do aluno
+                const alunoResp = await fetch(`${base}/alunos/${user.id}`);
+                if (!alunoResp.ok) throw new Error("Aluno não encontrado.");
+                const aluno = await alunoResp.json();
+
+                const saldo = aluno.saldo ?? 0;
+                if (saldo < v.valor) {
+                  alert("Saldo insuficiente para resgatar esta vantagem!");
+                  return;
+                }
+
+                // Cria o resgate
+                const resposta = await fetch(`${base}/resgates`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ alunoId: user.id, vantagemId: v.id })
+                });
+
+                if (!resposta.ok) throw new Error("Erro ao registrar resgate.");
+
+                // Atualiza saldo do aluno
+                const novoSaldo = saldo - v.valor;
+                await fetch(`${base}/alunos/${user.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...aluno, saldo: novoSaldo })
+                });
+
+                alert(`Vantagem resgatada com sucesso! Novo saldo: ${novoSaldo} pontos.`);
+              } catch (err) {
+                console.error(err);
+                alert("Erro ao processar resgate.");
+              }
+            };
+            botoes.append(resgatar);
+          }
+
+          card.appendChild(botoes);
+          container.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error(err);
+        msg.className = 'erro';
+        msg.textContent = 'Erro ao carregar as vantagens.';
+      }
+    }
+
+    function abrirModal(vantagem) {
+      vantagemAtual = vantagem;
+      document.getElementById('editFoto').value = vantagem.foto || '';
+      document.getElementById('editValor').value = vantagem.valor || '';
+      document.getElementById('editDescricao').value = vantagem.descricao || '';
+      document.getElementById('modalEditar').style.display = 'flex';
+    }
+
+    document.getElementById('btnCancelar').onclick = () => {
+      document.getElementById('modalEditar').style.display = 'none';
+    };
+
+    document.getElementById('btnSalvar').onclick = async () => {
+      if (!vantagemAtual) return;
+      const base = 'http://localhost:8080';
+
+      const dadosAtualizados = {
+        ...vantagemAtual,
+        foto: document.getElementById('editFoto').value,
+        valor: parseInt(document.getElementById('editValor').value),
+        descricao: document.getElementById('editDescricao').value
+      };
+
+      const resp = await fetch(`${base}/vantagens/${vantagemAtual.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dadosAtualizados)
+      });
+
+      if (resp.ok) {
+        alert('Vantagem atualizada com sucesso!');
+        document.getElementById('modalEditar').style.display = 'none';
+        window.location.reload();
+      } else {
+        alert('Erro ao atualizar vantagem.');
+      }
+    };
+
+    carregarVantagens();
+  </script>
+</body>
+</html>

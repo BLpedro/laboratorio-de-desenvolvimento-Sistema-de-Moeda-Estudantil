@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastrar Vantagem</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      color: #333;
+      margin: 0;
+    }
+
+    header {
+      background-color: #2563eb;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    header h1 {
+      font-size: 1.5em;
+      margin: 0;
+    }
+
+    nav {
+      display: flex;
+      gap: 15px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+
+    nav a:hover {
+      background-color: #1d4ed8;
+    }
+
+    main {
+      max-width: 600px;
+      margin: 60px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #2563eb;
+      margin-bottom: 20px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    label {
+      text-align: left;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+
+    input[type="file"] {
+      border: none;
+    }
+
+    button {
+      background-color: #2563eb;
+      color: white;
+      padding: 12px;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .mensagem {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .ok { background-color: #d1fae5; color: #065f46; }
+    .erro { background-color: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sistema de Vantagens</h1>
+    <nav>
+      <a href="cadastrarVantagem.html">Cadastrar Vantagem</a>
+      <a href="vantagensCadastradas.html">Vantagens Cadastradas</a>
+      <a href="perfilEmpresa.html">Perfil</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Cadastrar Nova Vantagem</h2>
+    <form id="formVantagem">
+      <div>
+        <label for="foto">Foto (URL):</label>
+        <input type="text" id="foto" name="foto" placeholder="https://exemplo.com/imagem.jpg" required>
+      </div>
+
+      <div>
+        <label for="valor">Valor (em pontos):</label>
+        <input type="number" id="valor" name="valor" min="1" required>
+      </div>
+
+      <div>
+        <label for="descricao">Descrição:</label>
+        <textarea id="descricao" name="descricao" rows="4" placeholder="Descreva a vantagem..." required></textarea>
+      </div>
+
+      <button type="submit">Cadastrar</button>
+    </form>
+
+    <div id="mensagem" class="mensagem" style="display:none;"></div>
+  </main>
+
+  <script>
+    document.getElementById('formVantagem').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const foto = document.getElementById('foto').value.trim();
+      const valor = parseInt(document.getElementById('valor').value);
+      const descricao = document.getElementById('descricao').value.trim();
+      const empresaId = localStorage.getItem('id');
+
+      const msg = document.getElementById('mensagem');
+      msg.style.display = 'none';
+
+      if (!empresaId) {
+        msg.textContent = 'Erro: ID da empresa não encontrado no localStorage.';
+        msg.className = 'mensagem erro';
+        msg.style.display = 'block';
+        return;
+      }
+
+      const dados = { foto, valor, descricao, empresaId };
+
+      try {
+        const res = await fetch('http://localhost:8080/vantagens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+
+        if (!res.ok) throw new Error('Erro ao cadastrar vantagem');
+
+        msg.textContent = 'Vantagem cadastrada com sucesso!';
+        msg.className = 'mensagem ok';
+        msg.style.display = 'block';
+
+        // limpa o formulário
+        e.target.reset();
+
+      } catch (err) {
+        console.error(err);
+        msg.textContent = 'Falha ao enviar os dados. Verifique o servidor.';
+        msg.className = 'mensagem erro';
+        msg.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
