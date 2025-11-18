@@ -251,6 +251,9 @@
       <label>Descrição:</label>
       <textarea id="editDescricao"></textarea>
 
+      <label>Quantidade:</label>
+<input type="number" id="editQuantidade">
+
       <button class="salvar" id="btnSalvar">Salvar Alterações</button>
       <button class="cancelar" id="btnCancelar">Cancelar</button>
     </div>
@@ -347,6 +350,7 @@
             <img src="${v.foto || 'https://via.placeholder.com/300x180?text=Sem+Imagem'}" alt="Imagem da vantagem">
             <div class="vantagem-info">
               <h3>${v.descricao || 'Sem descrição'}</h3>
+              <p><strong>Quantidade:</strong> ${v.quant > 0 ? v.quant : '<span style="color:red;font-weight:bold;">Esgotado</span>'}</p>
               <p class="valor">Valor: ${v.valor || 0} pontos</p>
               <p><strong>Empresa:</strong> ${nomeEmpresa}</p>
             </div>
@@ -372,47 +376,85 @@
             };
             botoes.append(editar, excluir);
           } else if (user.tipo === 'aluno') {
-            const resgatar = document.createElement('button');
-            resgatar.textContent = 'Resgatar Vantagem';
-            resgatar.classList.add('resgatar');
-            resgatar.onclick = async () => {
-              try {
-                // Busca dados do aluno
-                const alunoResp = await fetch(`${base}/alunos/${user.id}`);
-                if (!alunoResp.ok) throw new Error("Aluno não encontrado.");
-                const aluno = await alunoResp.json();
+              // Se quantidade for zero → mostrar mensagem "Esgotado"
+  if (v.quantidade <= 0) {
+    const esgotadoMsg = document.createElement('p');
+    esgotadoMsg.style.color = 'red';
+    esgotadoMsg.style.fontWeight = 'bold';
+    esgotadoMsg.textContent = 'Esgotado';
+    botoes.append(esgotadoMsg);
+  } 
+  else {
 
-                const saldo = aluno.saldo ?? 0;
-                if (saldo < v.valor) {
-                  alert("Saldo insuficiente para resgatar esta vantagem!");
-                  return;
-                }
+    // Se tiver quantidade, mostrar botão de resgate
+    const resgatar = document.createElement('button');
+    resgatar.textContent = 'Resgatar Vantagem';
+    resgatar.classList.add('resgatar');
 
-                // Cria o resgate
-                const resposta = await fetch(`${base}/resgates`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ alunoId: user.id, vantagemId: v.id })
-                });
+    resgatar.onclick = async () => {
+      try {
+        // Confere estoque de segurança
+        if (v.quantidade <= 0) {
+          alert("Esta vantagem está esgotada!");
+          return;
+        }
 
-                if (!resposta.ok) throw new Error("Erro ao registrar resgate.");
+        // Busca aluno
+        const alunoResp = await fetch(`${base}/alunos/${user.id}`);
+        if (!alunoResp.ok) throw new Error("Aluno não encontrado.");
+        const aluno = await alunoResp.json();
 
-                // Atualiza saldo do aluno
-                const novoSaldo = saldo - v.valor;
-                await fetch(`${base}/alunos/${user.id}`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ ...aluno, saldo: novoSaldo })
-                });
+        const saldo = aluno.saldo ?? 0;
 
-                alert(`Vantagem resgatada com sucesso! Novo saldo: ${novoSaldo} pontos.`);
-              } catch (err) {
-                console.error(err);
-                alert("Erro ao processar resgate.");
-              }
-            };
-            botoes.append(resgatar);
-          }
+        if (saldo < v.valor) {
+          alert("Saldo insuficiente para resgatar esta vantagem!");
+          return;
+        }
+
+        // Registrar resgate
+    const resposta = await fetch(`${base}/resgates`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+  alunoId: user.id,
+  tipo: "SAIDA",
+  vantagemId: v.id,
+  valor: v.valor,
+  data: new Date().toLocaleString('pt-BR')
+  })
+});
+
+        if (!resposta.ok) throw new Error("Erro ao registrar resgate.");
+
+        const novaQuantidade = v.quant - 1;
+
+        await fetch(`${base}/vantagens/${v.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...v, quant: novaQuantidade })
+        });
+
+        // Atualiza saldo do aluno
+        const novoSaldo = saldo - v.valor;
+
+        await fetch(`${base}/alunos/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...aluno, saldo: novoSaldo })
+        });
+
+        alert(`Vantagem resgatada com sucesso! Novo saldo: ${novoSaldo} pontos.`);
+        window.location.reload();
+
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao processar resgate.");
+      }
+    };
+
+    botoes.append(resgatar);
+  }
+}
 
           card.appendChild(botoes);
           container.appendChild(card);
@@ -430,6 +472,7 @@
       document.getElementById('editFoto').value = vantagem.foto || '';
       document.getElementById('editValor').value = vantagem.valor || '';
       document.getElementById('editDescricao').value = vantagem.descricao || '';
+      document.getElementById('editQuantidade').value = vantagem.quant ?? 0;
       document.getElementById('modalEditar').style.display = 'flex';
     }
 
@@ -442,10 +485,11 @@
       const base = 'http://localhost:8080';
 
       const dadosAtualizados = {
-        ...vantagemAtual,
-        foto: document.getElementById('editFoto').value,
-        valor: parseInt(document.getElementById('editValor').value),
-        descricao: document.getElementById('editDescricao').value
+      ...vantagemAtual,
+      foto: document.getElementById('editFoto').value,
+      valor: parseInt(document.getElementById('editValor').value),
+      descricao: document.getElementById('editDescricao').value,
+      quant: Math.max(0, parseInt(document.getElementById('editQuantidade').value))
       };
 
       const resp = await fetch(`${base}/vantagens/${vantagemAtual.id}`, {

@@ -12,8 +12,19 @@ public class Vantagem {
     private Long id;
     private String foto;
     private int valor;
+    private int quant;
     private String descricao;
     private String empresaId;
+
+
+    public int getQuant(){
+        return quant;
+    }
+
+    public void setQuant(int quant){
+        this.quant = quant;
+    }
+
     public Long getId() {
         return id;
     }

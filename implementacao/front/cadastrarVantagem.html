@@ -133,6 +133,11 @@
         <input type="number" id="valor" name="valor" min="1" required>
       </div>
 
+<div>
+    <label for="quantidade">Quantidade:</label>
+    <input type="number" id="quantidade" name="quantidade" min="1" required>
+      </div>
+
       <div>
         <label for="descricao">Descrição:</label>
         <textarea id="descricao" name="descricao" rows="4" placeholder="Descreva a vantagem..." required></textarea>
@@ -150,6 +155,7 @@
 
       const foto = document.getElementById('foto').value.trim();
       const valor = parseInt(document.getElementById('valor').value);
+      const quant = parseInt(document.getElementById('quantidade').value);
       const descricao = document.getElementById('descricao').value.trim();
       const empresaId = localStorage.getItem('id');
 
@@ -163,7 +169,7 @@
         return;
       }
 
-      const dados = { foto, valor, descricao, empresaId };
+const dados = { foto, valor, quant, descricao, empresaId };
 
       try {
         const res = await fetch('http://localhost:8080/vantagens', {

@@ -25,6 +25,7 @@ public class VantagemService {
             .map(vantagem -> {
                 vantagem.setFoto(updateVantagem.getFoto());
                 vantagem.setValor(updateVantagem.getValor());
+                vantagem.setQuant(updateVantagem.getQuant());
                 vantagem.setDescricao(updateVantagem.getDescricao());
                 return vantagemRepository.save(vantagem);
             }).orElseThrow(() -> new RuntimeException("Usuário não encontrado"));

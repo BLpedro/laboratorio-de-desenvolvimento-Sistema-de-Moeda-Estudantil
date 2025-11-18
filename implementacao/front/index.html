@@ -119,11 +119,17 @@
       try {
         const [resEmp, resAlu] = await Promise.all([
           fetch(`${base}/empresas?id=${encodeURIComponent(id)}`),
-          fetch(`${base}/alunos?id=${encodeURIComponent(id)}`)
+          fetch(`${base}/alunos?id=${encodeURIComponent(id)}`),
+          fetch(`${base}/professores?id=${encodeURIComponent(id)}`)
         ]);
 
         const empresas = await resEmp.json();
         const alunos = await resAlu.json();
+        const professores = await resProf.json();
+
+        const achouProf = Array.isArray(professores)
+  ? professores.some(p => p.id == id)
+  : professores?.id == id;
 
         const achouEmpresa = Array.isArray(empresas)
           ? empresas.some(e => e.id == id)
@@ -153,8 +159,17 @@
           menu.innerHTML = `
             <a href="vantagensCadastradas.html">Vantagens</a>
             <a href="aluno.html">Perfil</a>
+            <a href="vantagens.html">Extrato</a>
             <button id="btnSair" onclick="sair()">Sair</button>
           `;
+         } else if (achouProf) {
+  resultado.textContent = `O ID ${id} pertence a um PROFESSOR.`;
+  resultado.className = 'status ok';
+  menu.innerHTML = `
+    <a href="todosAlunos.html">Todos Alunos</a>
+    <a href="professor.html">Perfil</a>
+    <button id="btnSair" onclick="sair()">Sair</button>
+  `;
         } else {
           resultado.textContent = `O ID ${id} não foi encontrado em ALUNOS nem em EMPRESAS.`;
           resultado.className = 'status error';

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Extrato do Aluno</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        th {
+            background: #f3f3f3;
+        }
+
+        .entrada {
+            background-color: #e9ffe9;
+        }
+
+        .saida {
+            background-color: #ffe9e9;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Extrato do Aluno</h2>
+
+    <div id="tabelaExtrato"></div>
+
+<script>
+async function carregarExtrato() {
+    const alunoId = localStorage.getItem("id");
+
+    if (!alunoId) {
+        console.error("Nenhum aluno_id encontrado no localStorage");
+        return;
+    }
+
+    try {
+        // ----------- BUSCAR TODAS AS OPERAÇÕES -----------
+        const response = await fetch(`http://localhost:8080/resgates/aluno/${alunoId}`);
+        if (!response.ok) throw new Error("Erro ao buscar extrato");
+
+        const operacoes = await response.json();
+
+        // ----------- BUSCAR TODAS AS VANTAGENS -----------
+        const vantagensResponse = await fetch("http://localhost:8080/vantagens");
+        if (!vantagensResponse.ok) throw new Error("Erro ao buscar vantagens");
+
+        const vantagens = await vantagensResponse.json();
+
+        const mapaVantagens = {};
+        vantagens.forEach(v => mapaVantagens[v.id] = v);
+
+        // ----------- FORMATAR EXTRATO -----------
+        const extratoFormatado = operacoes.map(op => {
+            return {
+                tipo: op.tipo,
+                descricao: op.tipo === "ENTRADA"
+                    ? op.descricao
+                    : mapaVantagens[op.vantagemId]?.descricao || "Vantagem",
+                valor: op.valor,
+                data: op.data
+            };
+        });
+
+        // Ordenar por data (mais recente primeiro)
+        extratoFormatado.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+        montarTabela(extratoFormatado);
+
+    } catch (err) {
+        console.error("Erro:", err);
+    }
+}
+
+function montarTabela(dados) {
+
+    
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th> Tipo </th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    if (dados.length === 0) {
+        html += `
+            <tr>
+                <td colspan="4" style="text-align:center;">Nenhuma operação encontrada</td>
+            </tr>
+        `;
+    } else {
+        dados.forEach(item => {
+            
+            html += `
+<tr>                 
+                    <td>${item.tipo}</td>
+                    <td>${item.descricao}</td>
+                    <td>R$ ${item.valor}</td>
+                    <td>${item.data}</td>
+                </tr>
+            `;
+        });
+    }
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("tabelaExtrato").innerHTML = html;
+}
+
+window.onload = carregarExtrato;
+</script>
+
+</body>
+</html>
+
+
+<style>
+:root{
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --accent:#5561f2;
+  --muted:#7b8794;
+  --radius:12px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg,var(--bg),#eef2ff);
+  font-family: var(--font-family);
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+}
+
+h2 {
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* ===== TABELA ESTILIZADA ===== */
+table {
+  width: 100%;
+  max-width: 700px;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e6eef8;
+}
+
+th {
+  background: #f1f5ff;
+  color: #243b55;
+}
+
+tr.entrada {
+  background-color: #e9fff4;
+}
+
+tr.saida {
+  background-color: #ffe9e9;
+}
+
+/* hover */
+tr:hover {
+  background-color: #f1f5ff;
+}
+</style>

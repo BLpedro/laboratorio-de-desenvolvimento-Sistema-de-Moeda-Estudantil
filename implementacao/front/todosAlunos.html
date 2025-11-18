@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Alunos</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 60%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+        }
+
+        th {
+            background: #eee;
+        }
+
+        button {
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+
+        /* MODAL */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background: white;
+            padding: 25px;
+            width: 300px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px black;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+        }
+
+        .modal-buttons {
+            margin-top: 15px;
+            text-align: right;
+        }
+
+        .modal-buttons button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Alunos da mesma instituição do professor</h2>
+
+    <table id="tabelaAlunos" style="display:none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Saldo Atual</th>
+                <th>Adicionar Saldo</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- MODAL -->
+    <div id="modal-bg" class="modal-bg">
+        <div class="modal">
+            <h3>Adicionar Saldo</h3>
+
+            <label>Valor:</label>
+            <input type="number" id="valor-saldo" min="0" placeholder="Digite um valor">
+
+            <div class="modal-buttons">
+                <button onclick="fecharModal()">Cancelar</button>
+                <button onclick="confirmarSaldo()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+let alunoSelecionado = null;
+let alunoSelecionadoObj = null;
+
+// ================== FUNÇÃO PARA FORMATAR DATA pt-BR ==================
+function formatarDataHoraParaPTBR(date) {
+    const dia = String(date.getDate()).padStart(2,'0');
+    const mes = String(date.getMonth()+1).padStart(2,'0');
+    const ano = date.getFullYear();
+    const horas = String(date.getHours()).padStart(2,'0');
+    const minutos = String(date.getMinutes()).padStart(2,'0');
+    const segundos = String(date.getSeconds()).padStart(2,'0');
+    return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
+}
+
+// ================== CARREGAR ALUNOS ==================
+async function listarAlunosDaInstituicao() {
+    try {
+        const idProfessor = localStorage.getItem("id");
+        if (!idProfessor) { alert("ID do professor não encontrado no localStorage."); return; }
+
+        const respProf = await fetch(`http://localhost:8080/professores/${idProfessor}`);
+        if (!respProf.ok) throw new Error("Erro ao buscar professor");
+
+        const professor = await respProf.json();
+        const instituicaoCnpj = professor.instituicao_cnpj;
+
+        const respAlunos = await fetch("http://localhost:8080/alunos");
+        if (!respAlunos.ok) throw new Error("Erro ao buscar alunos");
+
+        const alunos = await respAlunos.json();
+        const alunosFiltrados = alunos.filter(aluno => aluno.instituicaoId === instituicaoCnpj);
+
+        const tbody = document.querySelector("#tabelaAlunos tbody");
+        tbody.innerHTML = "";
+
+        alunosFiltrados.forEach(aluno => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${aluno.id}</td>
+                <td>${aluno.nome}</td>
+                <td>R$ ${aluno.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                <td><button onclick='abrirModal(${JSON.stringify(aluno)})'>Adicionar Saldo</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById("tabelaAlunos").style.display = "table";
+
+    } catch (error) {
+        console.error(error);
+        alert("Erro ao carregar alunos.");
+    }
+}
+
+// ================== MODAL ==================
+function abrirModal(alunoObj) {
+    alunoSelecionado = alunoObj.id;
+    alunoSelecionadoObj = alunoObj;
+    document.getElementById("modal-bg").style.display = "flex";
+}
+
+function fecharModal() {
+    document.getElementById("modal-bg").style.display = "none";
+    document.getElementById("valor-saldo").value = "";
+}
+
+// ================== CONFIRMAR SALDO ==================
+async function confirmarSaldo() {
+    const valor = Number(document.getElementById("valor-saldo").value);
+    if (!valor || valor <= 0) { alert("Digite um valor válido."); return; }
+
+    try {
+        // 1️⃣ Atualiza saldo do aluno
+        const novoSaldo = alunoSelecionadoObj.saldo + valor;
+        await fetch(`http://localhost:8080/alunos/${alunoSelecionado}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...alunoSelecionadoObj, saldo: novoSaldo })
+        });
+
+        // 2️⃣ Cria registro no extrato com data pt-BR
+        const dataFormatada = formatarDataHoraParaPTBR(new Date());
+        const bodyPOST = {
+            valor: valor,
+            data: dataFormatada
+        };
+
+                console.log("Enviando POST para extrato:", bodyPOST);
+ await fetch(`http://localhost:8080/resgates/entrada/${alunoSelecionado}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyPOST)
+        });
+
+        alert(`Saldo de R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} adicionado com sucesso!`);
+        fecharModal();
+        listarAlunosDaInstituicao();
+
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao conectar com o servidor.");
+    }
+}
+
+// ================== INICIAL ==================
+listarAlunosDaInstituicao();
+</script>
+
+</body>
+</html>
+
+<style>
+:root{
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --accent:#5561f2;
+  --muted:#7b8794;
+  --radius:12px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg,var(--bg),#eef2ff);
+  font-family: var(--font-family);
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+}
+
+h2 {
+  color: var(--accent);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+table {
+  width: 100%;
+  max-width: 700px;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e6eef8;
+}
+
+th {
+  background: #f1f5ff;
+  color: #243b55;
+}
+
+button {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background-color: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #4451d4;
+}
+
+/* ===== MODAL ===== */
+.modal-bg {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  top:0; left:0; right:0; bottom:0;
+  background-color: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 25px;
+  width: 350px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border-radius: 10px;
+  border: 1px solid #e6eef8;
+  outline: none;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.modal-buttons button {
+  flex: 1;
+}
+
+.modal-buttons .cancelar {
+  background: #9ca3af;
+}
+
+.modal-buttons .confirmar {
+  background: var(--accent);
+}
+</style>
