@@ -1,28 +1,23 @@
 package grupox.moedaestudantil.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 @Entity
-public class Resgates {
+public class Resgate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private Long alunoId;
-
-    // Para SAÍDA (vantagem)
+    private String professorId;
     private Long vantagemId;
-
-    // Para ENTRADA e SAÍDA
-    private String tipo;     // "ENTRADA" ou "SAIDA"
+    private String tipo;      // ENTRADA ou SAIDA
     private String descricao;
     private Double valor;
-
     private String data;
-
-
-    // GETTERS E SETTERS
 
     public Long getId() {
         return id;
@@ -38,6 +33,14 @@ public class Resgates {
 
     public void setAlunoId(Long alunoId) {
         this.alunoId = alunoId;
+    }
+
+    public String getProfessorId() {
+        return professorId;
+    }
+
+    public void setProfessorId(String professorId) {
+        this.professorId = professorId;
     }
 
     public Long getVantagemId() {
@@ -79,4 +82,8 @@ public class Resgates {
     public void setData(String data) {
         this.data = data;
     }
+
+
+   
 }
+

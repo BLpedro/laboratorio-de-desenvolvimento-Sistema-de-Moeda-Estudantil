@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Extrato do Aluno</title>
+    <title>Extrato</title>
 
     <style>
         body {
@@ -45,6 +45,7 @@
     <div id="tabelaExtrato"></div>
 
 <script>
+
 async function carregarExtrato() {
     const alunoId = localStorage.getItem("id");
 
@@ -54,13 +55,13 @@ async function carregarExtrato() {
     }
 
     try {
-        // ----------- BUSCAR TODAS AS OPERAÇÕES -----------
+        // Extrato do aluno
         const response = await fetch(`http://localhost:8080/resgates/aluno/${alunoId}`);
         if (!response.ok) throw new Error("Erro ao buscar extrato");
 
         const operacoes = await response.json();
 
-        // ----------- BUSCAR TODAS AS VANTAGENS -----------
+        // Lista de vantagens (para identificar saídas)
         const vantagensResponse = await fetch("http://localhost:8080/vantagens");
         if (!vantagensResponse.ok) throw new Error("Erro ao buscar vantagens");
 
@@ -69,20 +70,34 @@ async function carregarExtrato() {
         const mapaVantagens = {};
         vantagens.forEach(v => mapaVantagens[v.id] = v);
 
-        // ----------- FORMATAR EXTRATO -----------
+        // ----------- FORMATAR LINHAS DO EXTRATO -----------
+
         const extratoFormatado = operacoes.map(op => {
+            let descricao = "";
+
+            if (op.tipo === "ENTRADA") {
+                // Entradas (professor adicionou saldo)
+                descricao = op.descricao || "Crédito recebido";
+            } else {
+                // Saídas — sempre vinculadas a uma vantagem
+                descricao = mapaVantagens[op.vantagemId]?.descricao || "Resgate";
+            }
+
+            // Valor formatado
+            const valorFormatado = op.valor.toLocaleString("pt-BR", {
+                minimumFractionDigits: 2
+            });
+
             return {
                 tipo: op.tipo,
-                descricao: op.tipo === "ENTRADA"
-                    ? op.descricao
-                    : mapaVantagens[op.vantagemId]?.descricao || "Vantagem",
-                valor: op.valor,
+                descricao,
+                valor: valorFormatado,
                 data: op.data
             };
         });
 
-        // Ordenar por data (mais recente primeiro)
-        extratoFormatado.sort((a, b) => new Date(b.data) - new Date(a.data));
+        // Ordenação por data (independente do formato)
+        extratoFormatado.sort((a, b) => converterData(a.data) - converterData(b.data)).reverse();
 
         montarTabela(extratoFormatado);
 
@@ -91,14 +106,31 @@ async function carregarExtrato() {
     }
 }
 
-function montarTabela(dados) {
+/**
+ * Converte tanto datas ISO quanto datas "pt-BR"
+ * para permitir ordenação correta.
+ */
+function converterData(dataStr) {
+    if (!dataStr) return new Date(0);
 
-    
+    if (dataStr.includes("/")) {
+        const [dia, mes, anoHora] = dataStr.split("/");
+        const [ano, hora] = anoHora.split(" ");
+        return new Date(`${ano}-${mes}-${dia} ${hora}`);
+    }
+
+    return new Date(dataStr);
+}
+
+
+// ----------- MONTA TABELA -----------
+
+function montarTabela(dados) {
     let html = `
         <table>
             <thead>
                 <tr>
-                    <th> Tipo </th>
+                    <th>Tipo</th>
                     <th>Descrição</th>
                     <th>Valor</th>
                     <th>Data</th>
@@ -115,10 +147,11 @@ function montarTabela(dados) {
         `;
     } else {
         dados.forEach(item => {
-            
+            const classe = item.tipo === "Saida";
+
             html += `
-<tr>                 
-                    <td>${item.tipo}</td>
+                <tr class="${classe}">
+                    <td>SAIDA</td>
                     <td>${item.descricao}</td>
                     <td>R$ ${item.valor}</td>
                     <td>${item.data}</td>
@@ -136,8 +169,8 @@ function montarTabela(dados) {
 }
 
 window.onload = carregarExtrato;
-</script>
 
+</script>
 </body>
 </html>
 

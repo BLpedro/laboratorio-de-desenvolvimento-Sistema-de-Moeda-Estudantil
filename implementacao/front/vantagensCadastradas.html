@@ -234,6 +234,7 @@
 
   <main>
     <h2>Vantagens Cadastradas</h2>
+    <h3 id="meuSaldo">Meu saldo: carregando...</h3>
     <div id="vantagens" class="vantagens-container"></div>
     <div id="mensagem" class="loading">Carregando vantagens...</div>
   </main>
@@ -296,8 +297,10 @@
           return { tipo: 'empresa', id };
         } else if (achouAluno) {
           menu.innerHTML = `
-            <a href="vantagensCadastradas.html">Vantagens</a>
+              <a href="vantagensCadastradas.html">Vantagens</a>
             <a href="aluno.html">Perfil</a>
+            <a href="extrato.html">Extrato</a>
+            <a id="btnSair" onclick="sair()">Sair</a>
           `;
           return { tipo: 'aluno', id };
         } else {
@@ -507,7 +510,46 @@
       }
     };
 
-    carregarVantagens();
+    async function carregarSaldo() {
+    const saldoEl = document.getElementById("meuSaldo");
+    const id = localStorage.getItem("id");
+
+    if (!id) {
+        saldoEl.textContent = "Meu saldo: (usuário não identificado)";
+        return;
+    }
+
+    try {
+        const base = "http://localhost:8080";
+
+        // Tenta buscar aluno
+        const respAluno = await fetch(`${base}/alunos/${id}`);
+        if (respAluno.ok) {
+            const aluno = await respAluno.json();
+            saldoEl.textContent = `Meu saldo: ${aluno.saldo ?? 0} pontos`;
+            return;
+        }
+
+        // Tenta buscar empresa (com saldo)
+        const respEmpresa = await fetch(`${base}/empresas/${id}`);
+        if (respEmpresa.ok) {
+            const emp = await respEmpresa.json();
+            const saldo = emp.saldo ?? emp.pontos ?? 0;
+            saldoEl.textContent = `Meu saldo: ${saldo} pontos`;
+            return;
+        }
+
+        saldoEl.textContent = "Meu saldo: (saldo não encontrado)";
+
+    } catch (e) {
+        console.error("Erro ao carregar saldo:", e);
+        saldoEl.textContent = "Meu saldo: erro ao carregar";
+    }
+}
+
+    carregarSaldo();
+carregarVantagens();
+
   </script>
 </body>
 </html>

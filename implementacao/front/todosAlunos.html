@@ -70,6 +70,7 @@
 <body>
 
     <h2>Alunos da mesma instituição do professor</h2>
+<h3>Meu saldo: <span id="saldo-professor"></span></h3>
 
     <table id="tabelaAlunos" style="display:none;">
         <thead>
@@ -102,17 +103,18 @@
 let alunoSelecionado = null;
 let alunoSelecionadoObj = null;
 
-// ================== FUNÇÃO PARA FORMATAR DATA pt-BR ==================
-function formatarDataHoraParaPTBR(date) {
-    const dia = String(date.getDate()).padStart(2,'0');
-    const mes = String(date.getMonth()+1).padStart(2,'0');
-    const ano = date.getFullYear();
-    const horas = String(date.getHours()).padStart(2,'0');
-    const minutos = String(date.getMinutes()).padStart(2,'0');
-    const segundos = String(date.getSeconds()).padStart(2,'0');
-    return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
-}
+async function carregarSaldoProfessor() {
+    const idProfessor = localStorage.getItem("id");
+    if (!idProfessor) return;
 
+    const respProf = await fetch(`http://localhost:8080/professores/${idProfessor}`);
+    const professor = await respProf.json();
+
+    document.getElementById("saldo-professor").textContent =
+        "R$ " + professor.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+    return professor; // devolve objeto para uso posterior
+}
 // ================== CARREGAR ALUNOS ==================
 async function listarAlunosDaInstituicao() {
     try {
@@ -167,35 +169,72 @@ function fecharModal() {
 
 // ================== CONFIRMAR SALDO ==================
 async function confirmarSaldo() {
+    const dataHoraAtual = new Date().toISOString().replace("T", " ").substring(0, 19);
+
     const valor = Number(document.getElementById("valor-saldo").value);
-    if (!valor || valor <= 0) { alert("Digite um valor válido."); return; }
+    if (!valor || valor <= 0) {
+        alert("Digite um valor válido.");
+        return;
+    }
 
     try {
-        // 1️⃣ Atualiza saldo do aluno
-        const novoSaldo = alunoSelecionadoObj.saldo + valor;
+        // Buscar professor atualizado
+        const idProfessor = localStorage.getItem("id");
+        const respProf = await fetch(`http://localhost:8080/professores/${idProfessor}`);
+        const professor = await respProf.json();
+
+        if (professor.saldo < valor) {
+            alert("Saldo insuficiente!");
+            return;
+        }
+
+        // Atualizar saldo do aluno
+        const novoSaldoAluno = alunoSelecionadoObj.saldo + valor;
         await fetch(`http://localhost:8080/alunos/${alunoSelecionado}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...alunoSelecionadoObj, saldo: novoSaldo })
+            body: JSON.stringify({ ...alunoSelecionadoObj, saldo: novoSaldoAluno })
         });
 
-        // 2️⃣ Cria registro no extrato com data pt-BR
-        const dataFormatada = formatarDataHoraParaPTBR(new Date());
-        const bodyPOST = {
-            valor: valor,
-            data: dataFormatada
-        };
-
-                console.log("Enviando POST para extrato:", bodyPOST);
- await fetch(`http://localhost:8080/resgates/entrada/${alunoSelecionado}`, {
+        // Registrar entrada no extrato do aluno (USANDO POST /resgates)
+        await fetch("http://localhost:8080/resgates", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyPOST)
+            body: JSON.stringify({
+                alunoId: alunoSelecionado,
+                valor,
+                tipo: "ENTRADA",
+                data: dataHoraAtual,
+                descricao: "Depósito do professor"
+            })
         });
 
-        alert(`Saldo de R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} adicionado com sucesso!`);
+        // Descontar saldo do professor
+        const novoSaldoProfessor = professor.saldo - valor;
+        await fetch(`http://localhost:8080/professores/${idProfessor}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...professor, saldo: novoSaldoProfessor })
+        });
+
+        // Registrar saída no extrato do professor (USANDO POST /resgates)
+        await fetch("http://localhost:8080/resgates", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                professorId: idProfessor,
+                valor,
+                tipo: "SAIDA",
+                data: dataHoraAtual,
+                descricao: "Transferência para aluno"
+            })
+        });
+
+        alert(`Saldo enviado com sucesso!`);
+
         fecharModal();
         listarAlunosDaInstituicao();
+        carregarSaldoProfessor();
 
     } catch (e) {
         console.error(e);
@@ -203,9 +242,11 @@ async function confirmarSaldo() {
     }
 }
 
+
+
 // ================== INICIAL ==================
 listarAlunosDaInstituicao();
-</script>
+carregarSaldoProfessor();</script>
 
 </body>
 </html>

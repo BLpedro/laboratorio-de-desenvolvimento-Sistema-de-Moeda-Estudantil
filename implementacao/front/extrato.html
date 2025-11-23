@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Extrato</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        th {
+            background: #f3f3f3;
+        }
+
+        .entrada {
+            background-color: #e9ffe9;
+        }
+
+        .saida {
+            background-color: #ffe9e9;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Extrato</h2>
+
+    <div id="tabelaExtrato"></div>
+    <a href="index.html"><p> Voltar para a pagina principal</p></a>
+
+<script>
+
+async function carregarExtrato() {
+    const usuarioId = localStorage.getItem("id");
+
+    if (!usuarioId) {
+        console.error("Nenhum id encontrado no localStorage");
+        return;
+    }
+
+    try {
+        // 1️⃣ Buscar todos os resgates
+        const response = await fetch("http://localhost:8080/resgates");
+        if (!response.ok) throw new Error("Erro ao buscar extrato");
+
+        const todasOperacoes = await response.json();
+
+        // 2️⃣ Buscar vantagens (para descrever saídas)
+        const vantagensResponse = await fetch("http://localhost:8080/vantagens");
+        if (!vantagensResponse.ok) throw new Error("Erro ao buscar vantagens");
+
+        const vantagens = await vantagensResponse.json();
+
+        const mapaVantagens = {};
+        vantagens.forEach(v => mapaVantagens[v.id] = v);
+
+        // 3️⃣ Filtrar operações do usuário (aluno ou professor)
+        const operacoes = todasOperacoes.filter(op =>
+            op.alunoId == usuarioId || op.professorId == usuarioId
+        );
+
+        // 4️⃣ Formatar o extrato
+        const extratoFormatado = operacoes.map(op => {
+
+    let descricao = "";
+
+    // Caso seja PROFESSOR → usar a descrição do banco EXATAMENTE COMO VEIO
+    if (op.professorId == usuarioId) {
+        descricao = op.descricao || "Operação do professor";
+
+    } else if (op.tipo === "ENTRADA") {
+        // Entradas de aluno
+        descricao = op.descricao || "Crédito recebido";
+
+    } else {
+        // Saída do aluno → vinculada a vantagem
+        descricao = mapaVantagens[op.vantagemId]?.descricao || "Resgate";
+    }
+
+    return {
+        tipo: op.tipo,
+        descricao,
+        valor: Number(op.valor).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2
+        }),
+        data: op.data
+    };
+});
+
+        // 5️⃣ Ordenar por data
+        extratoFormatado.sort((a, b) => converterData(a.data) - converterData(b.data)).reverse();
+
+        montarTabela(extratoFormatado);
+
+    } catch (err) {
+        console.error("Erro:", err);
+    }
+}
+
+// ---- Conversão universal de datas ----
+function converterData(dataStr) {
+    if (!dataStr) return new Date(0);
+
+    if (dataStr.includes("/")) {
+        const [dia, mes, anoHora] = dataStr.split("/");
+        const [ano, hora] = anoHora.split(" ");
+        return new Date(`${ano}-${mes}-${dia} ${hora}`);
+    }
+
+    return new Date(dataStr);
+}
+
+// ---- Montar tabela ----
+function montarTabela(dados) {
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    if (dados.length === 0) {
+        html += `
+            <tr>
+                <td colspan="4" style="text-align:center;">Nenhuma operação encontrada</td>
+            </tr>
+        `;
+    } else {
+        dados.forEach(item => {
+            const classe = item.tipo === "ENTRADA" ? "entrada" : "saida";
+
+            html += `
+                <tr class="${classe}">
+                    <td>${item.tipo}</td>
+                    <td>${item.descricao}</td>
+                    <td>R$ ${item.valor}</td>
+                    <td>${item.data}</td>
+                </tr>
+            `;
+        });
+    }
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("tabelaExtrato").innerHTML = html;
+}
+
+window.onload = carregarExtrato;
+
+</script>
+
+</body>
+</html>
+
+
+<style>
+:root{
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --accent:#5561f2;
+  --muted:#7b8794;
+  --radius:12px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg,var(--bg),#eef2ff);
+  font-family: var(--font-family);
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+}
+
+h2 {
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* ===== TABELA ESTILIZADA ===== */
+table {
+  width: 100%;
+  max-width: 700px;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e6eef8;
+}
+
+th {
+  background: #f1f5ff;
+  color: #243b55;
+}
+
+tr.entrada {
+  background-color: #e9fff4;
+}
+
+tr.saida {
+  background-color: #ffe9e9;
+}
+
+/* hover */
+tr:hover {
+  background-color: #f1f5ff;
+}
+</style>
