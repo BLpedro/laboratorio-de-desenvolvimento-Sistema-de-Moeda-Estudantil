@@ -4,23 +4,29 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 public class Vantagem {
+
     @Id
-   @GeneratedValue(strategy = GenerationType.IDENTITY) 
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String foto;
     private int valor;
     private int quant;
     private String descricao;
     private String empresaId;
 
+    @ManyToOne
+    @JoinColumn(name = "aluno_id") // cria coluna no banco
+    private Aluno aluno;
 
     public int getQuant(){
         return quant;
     }
-
     public void setQuant(int quant){
         this.quant = quant;
     }
@@ -56,5 +62,11 @@ public class Vantagem {
         this.empresaId = empresaId;
     }
 
-
+    // Getter e Setter DO ALUNO
+    public Aluno getAluno() {
+        return aluno;
+    }
+    public void setAluno(Aluno aluno) {
+        this.aluno = aluno;
+    }
 }

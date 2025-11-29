@@ -18,6 +18,16 @@ public class Resgate {
     private String descricao;
     private Double valor;
     private String data;
+    private String codigo;
+
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
+    }
 
     public Long getId() {
         return id;

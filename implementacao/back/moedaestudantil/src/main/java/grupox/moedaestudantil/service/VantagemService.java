@@ -14,12 +14,12 @@ public class VantagemService {
     @Autowired
     private VantagemRepository vantagemRepository;
 
-    // Criar novo usuário
+    // Criar nova vantagem
     public Vantagem createVantagem(Vantagem vantagem) {
         return vantagemRepository.save(vantagem);
     }
 
-    // Atualizar usuário
+    // Atualizar vantagem
     public Vantagem updateVantagem(Long id, Vantagem updateVantagem) {
         return vantagemRepository.findById(id)
             .map(vantagem -> {
@@ -28,7 +28,7 @@ public class VantagemService {
                 vantagem.setQuant(updateVantagem.getQuant());
                 vantagem.setDescricao(updateVantagem.getDescricao());
                 return vantagemRepository.save(vantagem);
-            }).orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+            }).orElseThrow(() -> new RuntimeException("Vantagem não encontrada"));
     }
 
     // Deletar
@@ -39,11 +39,10 @@ public class VantagemService {
     // Buscar por ID
     public Vantagem getVantagemById(Long id) {
         return vantagemRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+            .orElseThrow(() -> new RuntimeException("Vantagem não encontrada"));
     }
 
-
-    // Listar todos
+    // Listar todas
     public List<Vantagem> getAllVantagens() {
         return vantagemRepository.findAll();
     }
