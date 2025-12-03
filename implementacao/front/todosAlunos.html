@@ -99,23 +99,25 @@
         </div>
     </div>
 
+
 <script>
 let alunoSelecionado = null;
 let alunoSelecionadoObj = null;
 
-async function carregarSaldoProfessor() {
-    const idProfessor = localStorage.getItem("id");
-    if (!idProfessor) return;
-
-    const respProf = await fetch(`http://localhost:8080/professores/${idProfessor}`);
-    const professor = await respProf.json();
-
-    document.getElementById("saldo-professor").textContent =
-        "R$ " + professor.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-
-    return professor; // devolve objeto para uso posterior
+// ================== MODAL ==================
+function abrirModal(alunoObj) {
+    alunoSelecionado = alunoObj.id;
+    alunoSelecionadoObj = alunoObj;
+    document.getElementById("modal-bg").style.display = "flex";
 }
-// ================== CARREGAR ALUNOS ==================
+
+function fecharModal() {
+    document.getElementById("modal-bg").style.display = "none";
+    document.getElementById("valor-saldo").value = "";
+}
+
+
+// ================== LISTAR ALUNOS ==================
 async function listarAlunosDaInstituicao() {
     try {
         const idProfessor = localStorage.getItem("id");
@@ -155,23 +157,20 @@ async function listarAlunosDaInstituicao() {
     }
 }
 
-// ================== MODAL ==================
-function abrirModal(alunoObj) {
-    alunoSelecionado = alunoObj.id;
-    alunoSelecionadoObj = alunoObj;
-    document.getElementById("modal-bg").style.display = "flex";
+// ================== CARREGAR SALDO PROFESSOR ==================
+async function carregarSaldoProfessor() {
+    const id = localStorage.getItem("id");
+    const resp = await fetch(`http://localhost:8080/professores/${id}`);
+    const prof = await resp.json();
+
+    document.getElementById("saldo-prof").innerText = prof.saldo;
 }
 
-function fecharModal() {
-    document.getElementById("modal-bg").style.display = "none";
-    document.getElementById("valor-saldo").value = "";
-}
-
-// ================== CONFIRMAR SALDO ==================
+// ================== CONFIRMAR SALDO (MANTIVE SUA FUNÇÃO) ==================
 async function confirmarSaldo() {
     const dataHoraAtual = new Date().toISOString().replace("T", " ").substring(0, 19);
-
     const valor = Number(document.getElementById("valor-saldo").value);
+
     if (!valor || valor <= 0) {
         alert("Digite um valor válido.");
         return;
@@ -196,7 +195,7 @@ async function confirmarSaldo() {
             body: JSON.stringify({ ...alunoSelecionadoObj, saldo: novoSaldoAluno })
         });
 
-        // Registrar entrada no extrato do aluno (USANDO POST /resgates)
+        // Registrar entrada no extrato do aluno
         await fetch("http://localhost:8080/resgates", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -209,7 +208,7 @@ async function confirmarSaldo() {
             })
         });
 
-        // Descontar saldo do professor
+        // Atualizar saldo do professor
         const novoSaldoProfessor = professor.saldo - valor;
         await fetch(`http://localhost:8080/professores/${idProfessor}`, {
             method: "PUT",
@@ -217,7 +216,7 @@ async function confirmarSaldo() {
             body: JSON.stringify({ ...professor, saldo: novoSaldoProfessor })
         });
 
-        // Registrar saída no extrato do professor (USANDO POST /resgates)
+        // Registrar saída do professor
         await fetch("http://localhost:8080/resgates", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -230,7 +229,7 @@ async function confirmarSaldo() {
             })
         });
 
-        alert(`Saldo enviado com sucesso!`);
+        alert("Saldo enviado com sucesso!");
 
         fecharModal();
         listarAlunosDaInstituicao();
@@ -242,14 +241,13 @@ async function confirmarSaldo() {
     }
 }
 
-
-
 // ================== INICIAL ==================
 listarAlunosDaInstituicao();
-carregarSaldoProfessor();</script>
+carregarSaldoProfessor();
+</script>
 
-</body>
-</html>
+    </body>
+    </html>
 
 <style>
 :root{

@@ -263,6 +263,17 @@
   <script>
     let vantagemAtual = null;
 
+    function gerarCodigoResgate() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let p1 = "";
+    let p2 = "";
+
+    for (let i = 0; i < 5; i++) p1 += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 5; i++) p2 += chars[Math.floor(Math.random() * chars.length)];
+
+    return `${p1}-${p2}`;
+}
+
     async function carregarMenu() {
       const menu = document.getElementById('menu');
       const id = localStorage.getItem('id');
@@ -415,19 +426,27 @@
         }
 
         // Registrar resgate
-    const resposta = await fetch(`${base}/resgates`, {
+ const codigo = gerarCodigoResgate();
+
+const resposta = await fetch(`${base}/resgates`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-  alunoId: user.id,
-  tipo: "SAIDA",
-  vantagemId: v.id,
-  valor: v.valor,
-  data: new Date().toLocaleString('pt-BR')
+   alunoId: user.id,
+    tipo: "SAIDA",
+    vantagemId: v.id,
+    descricao: `Resgate da vantagem: ${v.descricao}`,
+    codigo: codigo,
+    valor: v.valor,
+    data: new Date().toLocaleString('pt-BR')
   })
 });
 
-        if (!resposta.ok) throw new Error("Erro ao registrar resgate.");
+if (!resposta.ok) throw new Error("Erro ao registrar resgate.");
+
+// Buscar email do aluno
+const respEmail = await fetch(`${base}/alunos/${user.id}`);
+const alunoDados = await respEmail.json();
 
         const novaQuantidade = v.quant - 1;
 

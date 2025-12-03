@@ -4,7 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+import grupox.moedaestudantil.dto.VantagemCreateDTO;
+import grupox.moedaestudantil.entity.Aluno;
 import grupox.moedaestudantil.entity.Vantagem;
+import grupox.moedaestudantil.repository.AlunoRepository;
 import grupox.moedaestudantil.service.VantagemService;
 
 @RestController
@@ -13,6 +16,9 @@ public class VantagemController {
 
     @Autowired
     private VantagemService vantagemService;
+
+    @Autowired
+    private AlunoRepository alunoRepository; // necessário para buscar o Aluno
 
     @GetMapping
     public List<Vantagem> getAllVantagens() {
@@ -25,7 +31,20 @@ public class VantagemController {
     }
 
     @PostMapping
-    public Vantagem createVantagem(@RequestBody Vantagem vantagem) {
+    public Vantagem create(@RequestBody VantagemCreateDTO dto) {
+
+        // busca o aluno informado no DTO
+        Aluno aluno = alunoRepository.findById(dto.getAlunoId())
+            .orElseThrow(() -> new RuntimeException("Aluno não encontrado!"));
+
+        Vantagem vantagem = new Vantagem();
+        vantagem.setFoto(dto.getFoto());
+        vantagem.setValor(dto.getValor());
+        vantagem.setQuant(dto.getQuant());
+        vantagem.setDescricao(dto.getDescricao());
+        vantagem.setEmpresaId(String.valueOf(dto.getEmpresaId()));
+        vantagem.setAluno(aluno); // associa o aluno à vantagem
+
         return vantagemService.createVantagem(vantagem);
     }
 
