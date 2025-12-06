@@ -12,13 +12,22 @@ import grupox.moedaestudantil.repository.VantagemRepository;
 public class VantagemService {
 
     @Autowired
-    private VantagemRepository vantagemRepository;
+    private AlunoRepository alunoRepository; 
 
-    // Criar nova vantagem
-    public Vantagem createVantagem(Vantagem vantagem) {
+    public Vantagem createVantagem(VantagemCreateDTO dto) {
+        Aluno aluno = alunoRepository.findById(dto.getAlunoId())
+            .orElseThrow(() -> new RuntimeException("Aluno não encontrado!"));
+            
+        Vantagem vantagem = new Vantagem();
+        vantagem.setFoto(dto.getFoto());
+        vantagem.setValor(dto.getValor());
+        vantagem.setQuant(dto.getQuant());
+        vantagem.setDescricao(dto.getDescricao());
+        vantagem.setEmpresaId(String.valueOf(dto.getEmpresaId()));
+        vantagem.setAluno(aluno);
+        
         return vantagemRepository.save(vantagem);
     }
-
     // Atualizar vantagem
     public Vantagem updateVantagem(Long id, Vantagem updateVantagem) {
         return vantagemRepository.findById(id)
