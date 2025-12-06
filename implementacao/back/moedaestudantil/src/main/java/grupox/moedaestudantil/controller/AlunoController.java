@@ -1,6 +1,5 @@
 package grupox.moedaestudantil.controller;
 
-
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,19 +15,24 @@ import org.springframework.web.bind.annotation.RestController;
 import grupox.moedaestudantil.entity.Aluno;
 import grupox.moedaestudantil.service.AlunoService;
 
-
 @RestController
 @RequestMapping("/alunos")
 public class AlunoController {
-    
 
     @Autowired
     private AlunoService alunoService;
 
+    @GetMapping
+    public ResponseEntity<Page<AlunoDTO>> getAllAlunos(
+            @PageableDefault(page = 0, size = 10, sort = "nome") Pageable pageable) {
+        Page<Aluno> pageAlunos = alunoService.getAllAlunos(pageable);
 
-      @GetMapping
-    public List<Aluno> getAllAlunos() {
-        return alunoService.getAllAlunos();
+        Page<AlunoDTO> pageDtos = pageAlunos.map(aluno -> new AlunoDTO(
+                aluno.getNome(),
+                aluno.getEmail(),
+                aluno.getCurso()));
+
+        return ResponseEntity.ok(pageDtos);
     }
 
     @GetMapping("/{id}")
@@ -36,13 +40,10 @@ public class AlunoController {
         return alunoService.getAlunoById(id);
     }
 
-
     @PostMapping
     public Aluno createAluno(@RequestBody Aluno aluno) {
         return alunoService.createAluno(aluno);
     }
-
-
 
     @PutMapping("/{id}")
     public Aluno updateAluno(@PathVariable Long id, @RequestBody Aluno aluno) {
@@ -53,6 +54,5 @@ public class AlunoController {
     public void deleteAluno(@PathVariable Long id) {
         alunoService.deleteAluno(id);
     }
-
 
 }

@@ -1,4 +1,5 @@
 package grupox.moedaestudantil.service;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,30 +20,30 @@ public class AlunoService {
 
     public Aluno updateAluno(Long id, Aluno updateAluno) {
         return alunoRepository.findById(id)
-        .map(aluno -> {
-            aluno.setCpf(updateAluno.getCpf());
-            aluno.setNome(updateAluno.getNome());
-            aluno.setEmail(updateAluno.getEmail());
-            aluno.setRg(updateAluno.getRg());
-            aluno.setCurso(updateAluno.getCurso());
-            aluno.setInstituicaoId(updateAluno.getInstituicaoId());
-            aluno.setSaldo(updateAluno.getSaldo());
-            aluno.setEndereco(updateAluno.getEndereco());
-            return alunoRepository.save(aluno);
-        }).orElseThrow(() -> new RuntimeException("Aluno not found with id " + id));
+                .map(aluno -> {
+                    aluno.setCpf(updateAluno.getCpf());
+                    aluno.setNome(updateAluno.getNome());
+                    aluno.setEmail(updateAluno.getEmail());
+                    aluno.setRg(updateAluno.getRg());
+                    aluno.setCurso(updateAluno.getCurso());
+                    aluno.setInstituicaoId(updateAluno.getInstituicaoId());
+                    aluno.setSaldo(updateAluno.getSaldo());
+                    aluno.setEndereco(updateAluno.getEndereco());
+                    return alunoRepository.save(aluno);
+                }).orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aluno não encontrado com id " + id));
     }
 
-        public void deleteAluno(Long id) {
-            alunoRepository.deleteById(id);
-        }
+    public void deleteAluno(Long id) {
+        alunoRepository.deleteById(id);
+    }
 
-        public Aluno getAlunoById(Long id) {
-            return alunoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Aluno not found with id " + id));
-        }
+    public Aluno getAlunoById(Long id) {
+        return alunoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Aluno not found with id " + id));
+    }
 
-
-        public List<Aluno> getAllAlunos() {
-            return alunoRepository.findAll();
-        }
+    public Page<Aluno> getAllAlunos(Pageable pageable) {
+        return alunoRepository.findAll(pageable);
+    }
 }
